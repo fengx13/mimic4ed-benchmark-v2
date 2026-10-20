@@ -1,0 +1,15 @@
+# Source data (PhysioNet credentialed access required -- never commit this)
+data/*
+!data/.gitkeep
+
+# Pipeline outputs (regenerate locally; these are derived patient data)
+derived/*
+!derived/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# OS
+.DS_Store

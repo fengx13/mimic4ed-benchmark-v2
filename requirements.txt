@@ -1,0 +1,7 @@
+# Exact versions this pipeline was built and verified against.
+# Looser version ranges are untested; pandas 3.x made internal changes
+# (copy-on-write, string dtype defaults) that could in principle shift
+# edge-case behavior versus pandas 2.x, though nothing in this pipeline
+# is known to depend on those changes.
+pandas==3.0.2
+numpy==2.4.4
