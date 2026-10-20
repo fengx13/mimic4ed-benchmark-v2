@@ -1,56 +1,56 @@
-# MIMIC-IV-ED 2.2 Benchmark (FAIR-ED Edition)
+# MIMIC-IV-ED 2.2 Benchmark
 
 [![Dataset: MIMIC-IV-ED v2.2](https://img.shields.io/badge/MIMIC--IV--ED-v2.2-blue.svg)](https://physionet.org/content/mimic-iv-ed/2.2/)
 [![Dataset: MIMIC-IV v3.1](https://img.shields.io/badge/MIMIC--IV-v3.1-blue.svg)](https://physionet.org/content/mimiciv/3.1/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This repository contains an end-to-end data extraction, cleaning, and feature-assembly pipeline supporting the **FAIR-ED Benchmark** (*Fairness and Algorithmic Equity in Emergency Department Clinical Risk Prediction*). 
+This repository provides an automated pipeline for extraction, cleaning, and feature assembly that supports the **FAIR-ED Benchmark** (*Fairness and Algorithmic Equity in Emergency Department Clinical Risk Prediction*). 
 
-This pipeline links **MIMIC-IV-ED v2.2** with **MIMIC-IV v3.1** to build a standardized, publication-grade benchmark table. To optimize research workflows evaluating algorithmic bias and disparate impact across acute care presentations, this release is **explicitly restricted to 5 high-acuity clinical outcomes**.
+The pipeline links **MIMIC-IV-ED v2.2** with **MIMIC-IV v3.1** to construct a standardized, publication-grade benchmark table (`1 row = 1 unique ED stay`, **274 columns**). To facilitate focused research evaluating algorithmic bias, subgroup disparities, and clinical utility across acute care presentations, this release is **explicitly restricted to 5 high-acuity clinical target conditions**.
 
 ---
 
 ## Benchmark Target Outcomes (Restricted to 5)
 
-Every outcome is positive if the corresponding ICD diagnostic code appears in the ED stay's own discharge diagnosis records (`ed/diagnoses.csv.gz`) **or** the linked inpatient admission's discharge diagnosis list (`hosp/diagnoses_icd.csv.gz`).
+An encounter is classified positive for an outcome if the corresponding ICD diagnostic code appears in the ED stay's own discharge diagnoses (`ed/diagnoses.csv.gz`) **or** the linked inpatient admission's discharge diagnoses (`hosp/diagnoses_icd.csv.gz`).
 
-| Target Clinical Condition | Target Column Name | Matching Strategy | Clinical & Diagnostic Logic |
+| Target Clinical Condition | Target Column Name | Matching Strategy | Diagnostic Code Criteria |
 |---|---|---|---|
-| **Acute Coronary Syndrome (ACS)** | `outcome_cp_acs` | ICD-9/10 prefix match | STEMI, NSTEMI, unstable angina, and other acute ischemic heart disease categories (`410`, `4111`, `4118`, `I21`, `I22`, `I200`, `I248`, `I249`). |
-| **Sepsis** | `outcome_sepsis` | ICD-9/10 exact match | Literal match across 21 ICD-9 and 29 ICD-10 codes capturing septicemia, sepsis, severe sepsis, septic shock, and obstetric-related sepsis. |
-| **Acute Heart Failure (AHF)** | `outcome_hf_acute` | ICD-9/10 exact match | Literal match across 6 ICD-9 and 8 ICD-10 codes explicitly capturing *acute* or *acute-on-chronic* decompensation; chronic/unspecified HF is excluded. |
-| **Stroke** | `outcome_stroke` | ICD-9/10 exact match | Non-traumatic cerebrovascular events spanning 15 ICD-9 and 161 ICD-10 codes (subarachnoid hemorrhage, intracerebral hemorrhage, cerebral infarction). |
-| **Pulmonary Embolism (PE)** | `outcome_cp_pe` | ICD-9/10 prefix match | Acute pulmonary embolism and infarction codes (`4151`, `6732`, `I26`, `O882`). |
+| **Acute Coronary Syndrome (ACS)** | `outcome_cp_acs` | Prefix Match | STEMI, NSTEMI, unstable angina, and other acute ischemic heart disease categories (`410`, `4111`, `4118`, `I21`, `I22`, `I200`, `I248`, `I249`). |
+| **Sepsis** | `outcome_sepsis` | Exact Match | 21 ICD-9 and 29 ICD-10 codes enumerating septicemia, sepsis, severe sepsis, septic shock, and obstetric-related sepsis. |
+| **Acute Heart Failure (AHF)** | `outcome_hf_acute` | Exact Match | 6 ICD-9 and 8 ICD-10 codes explicitly capturing *acute* or *acute-on-chronic* decompensated heart failure; chronic/unspecified HF is excluded. |
+| **Stroke** | `outcome_stroke` | Exact Match | Non-traumatic cerebrovascular events spanning 15 ICD-9 and 161 ICD-10 codes (subarachnoid hemorrhage, intracerebral hemorrhage, cerebral infarction). |
+| **Pulmonary Embolism (PE)** | `outcome_cp_pe` | Prefix Match | Acute pulmonary embolism and infarction codes (`4151`, `6732`, `I26`, `O882`). |
 
-> **Audit & Parity Guarantee:** This repository's output was verified column-by-column against the full 49-outcome master dataset: **all 269 shared predictor columns and all 5 outcome columns are value-identical (0 mismatches)**. The pipeline is identical to the full engine, with the target extraction step scoped specifically to these five conditions.
+> **Audit & Parity Guarantee:** The feature matrices produced by this pipeline were verified column-by-column against the 49-outcome master dataset: **all 269 shared predictor columns and all 5 outcome columns are value-identical (0 mismatches)**.
 
 ---
 
 ## Feature Matrix Overview
 
-The pipeline assembles a unified cohort matrix (`1 row = 1 unique ED stay`) across **274 columns**:
+Each row represents an individual ED presentation indexed by `stay_id` across **274 standardized columns**:
 
-* **Demographics & Operational Targets:** Age, sex, race/ethnicity, arrival transport mode, stay timestamps, hospital admission, ICU transfer, in-hospital mortality, and 72-hour ED revisit.
-* **Prior Utilization Metrics:** Longitudinal counts of ED visits, hospitalizations, and ICU transfers within the preceding 1, 3, and 5 years.
-* **Bedside & Serial Vitals:** Initial triage vitals (cleaned, median-imputed, with missingness flags) plus first and last serial vital sign measurements captured during the stay.
-* **Chief Complaints:** Binary indicators for the top 10 most common ED chief complaints.
-* **Longitudinal Comorbidities:** 48 Charlson and Elixhauser comorbidity indicators mapped from 5 years of preceding inpatient admission records.
-* **Clinical Bedside Severity Scores:** 6 calibrated risk indices: CART, REMS, NEWS, NEWS2, MEWS, and the Charlson Comorbidity Index (CCI).
-* **Laboratory Assay Panel:** ~90 post-triage clinical laboratory analytes with median-imputed feature flags and missingness indicators.
-* **Diagnostic History & Outcomes:** 5-year diagnostic history strings and the 5 benchmark outcome columns.
+* **Demographics & Core Dispositions:** Age, administrative sex, self-reported race/ethnicity, transport arrival mode, arrival/discharge timestamps, ED hospitalization, ICU direct transfer, in-hospital mortality, and 72-hour ED revisit.
+* **Prior Utilization Patterns:** Longitudinal event counts of ED presentations, inpatient admissions, and ICU transfers within the preceding 1, 3, and 5 years.
+* **Triage & Serial Vitals:** Initial triage vitals (cleaned, median-imputed, with missingness indicator flags) along with initial and terminal serial measurements recorded during the encounter.
+* **Chief Complaints:** Binary indicator flags for the top 10 most frequent ED chief complaints.
+* **Longitudinal Comorbidities:** 48 Charlson and Elixhauser condition indicators derived from 5 years of preceding inpatient admission records.
+* **Bedside Severity Indices:** 6 calibrated clinical risk scores: CART, REMS, NEWS, NEWS2, MEWS, and the Charlson Comorbidity Index (CCI).
+* **Clinical Laboratory Panel:** ~90 post-triage clinical laboratory analytes with median-imputed feature flags and missingness indicators.
+* **Diagnostic History & Target Targets:** Concatenated 5-year ICD diagnostic history strings and the 5 validated outcome flags.
 
 ---
 
 ## Data Access & Governance
 
-This repository contains **code only**. It does not distribute Protected Health Information (PHI) or raw patient records.
+This repository contains **executable code only**. It does not distribute Protected Health Information (PHI) or de-identified patient data.
 
-To execute the pipeline, you must have an active **credentialed PhysioNet researcher account** with approved Data Use Agreements (DUAs) for both:
+Executing this pipeline requires an active **credentialed PhysioNet researcher account** with signed Data Use Agreements (DUAs) for both:
 1. **MIMIC-IV v3.1** — [physionet.org/content/mimiciv/3.1/](https://physionet.org/content/mimiciv/3.1/) (`hosp/` and `icu/` modules)
 2. **MIMIC-IV-ED v2.2** — [physionet.org/content/mimic-iv-ed/2.2/](https://physionet.org/content/mimic-iv-ed/2.2/) (`ed/` module)
 
-> **Compliance Notice:** Row-level outputs generated by this pipeline remain subject to PhysioNet DUA restrictions. Never commit raw or derived CSV/PKL files to version control, and do not transmit patient-level records to unauthorized external or cloud services.
+> **Compliance Notice:** Row-level files generated by this pipeline remain subject to PhysioNet DUA restrictions. Never commit intermediate or final CSV/PKL files to version control, and do not transmit individual patient records across unauthorized third-party platforms.
 
 ---
 
@@ -58,24 +58,25 @@ To execute the pipeline, you must have an active **credentialed PhysioNet resear
 
 ```text
 mimic4ed-benchmark-v2/
-├── data/
-│   ├── ed/             <- MIMIC-IV-ED v2.2 tables (edstays.csv.gz, triage.csv.gz, etc.)
-│   ├── hosp/           <- MIMIC-IV v3.1 hosp tables (diagnoses_icd.csv.gz, labevents.csv.gz, etc.)
-│   └── icu/            <- MIMIC-IV v3.1 icu tables (icustays.csv.gz)
-├── derived/            <- Staging checkpoints and final assembled datasets (.gitkeep only)
+├── data/                       <- Raw PhysioNet source tables (git-ignored)
+│   ├── ed/                     <- MIMIC-IV-ED v2.2 (edstays.csv.gz, triage.csv.gz, etc.)
+│   ├── hosp/                   <- MIMIC-IV v3.1 hosp (diagnoses_icd.csv.gz, labevents.csv.gz, etc.)
+│   └── icu/                    <- MIMIC-IV v3.1 icu (icustays.csv.gz)
+├── derived/                    <- Checkpoints and final benchmark outputs (git-ignored)
+│   └── .gitkeep
 ├── scripts/
-│   ├── 01_cohort.py           <- Cohort spine, disposition outcomes, utilization
-│   ├── 02_vitals.py           <- Triage vitals, serial measurements, chief complaints
-│   ├── 03_comorbidity.py      <- Charlson/Elixhauser indices, 5-year dx history
-│   ├── 04_labs_extract.py     <- Scans and filters raw labevents.csv.gz (~2.4 GB)
-│   ├── 05_outcomes.py         <- Derives 5 benchmark targets + computes severity scores
-│   ├── 06_labs_impute.py      <- Pivots lab matrices, performs vital imputation & rescoring
-│   ├── 07_assemble.py         <- Orders final columns and exports compressed outputs
-│   ├── codemaps.py            <- ICD-to-comorbidity translation logic
-│   ├── cp_codes.py            <- Prefix-based codes for ACS and PE
-│   ├── outcome_codes_exact.py <- Exact-match ICD code tables for Sepsis, AHF, and Stroke
-│   └── scores.py              <- Mathematical scoring rules for bedside clinical indices
-├── .gitignore          <- Ignores data/* and derived/* artifacts
-├── LICENSE             <- MIT License
-├── README.md           <- Project documentation
-└── requirements.txt    <- Pinned Python dependencies
+│   ├── 01_cohort.py            <- Cohort spine, disposition outcomes, prior utilization
+│   ├── 02_vitals.py            <- Triage vitals, serial vitals, chief complaint encoding
+│   ├── 03_comorbidity.py       <- Charlson/Elixhauser indices, 5-year diagnostic history
+│   ├── 04_labs_extract.py      <- Chunked parser for labevents.csv.gz (~2.4 GB)
+│   ├── 05_outcomes.py          <- Derives the 5 clinical outcomes + computes severity scores
+│   ├── 06_labs_impute.py       <- Lab feature pivot, vital imputation & score calibration
+│   ├── 07_assemble.py          <- Column ordering, verification checks, final dataset serialization
+│   ├── codemaps.py             <- ICD-9/10 comorbidity grouping dictionaries
+│   ├── cp_codes.py             <- Audited prefix sets for ACS and PE
+│   ├── outcome_codes_exact.py  <- Exact-match ICD code tables for Sepsis, AHF, and Stroke
+│   └── scores.py               <- Mathematical scoring definitions for clinical bedside indices
+├── .gitignore                  <- Configured to ignore data/* and derived/* artifacts
+├── LICENSE                     <- MIT License
+├── README.md                   <- Pipeline documentation
+└── requirements.txt            <- Pinned Python dependencies
